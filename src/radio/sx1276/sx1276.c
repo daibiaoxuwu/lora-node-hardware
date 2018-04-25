@@ -33,6 +33,7 @@
 #include "delay.h"
 #include "sx1276.h"
 #include "sx1276-board.h"
+#include "serialio.h"
 
 /*
  * Local types definition
