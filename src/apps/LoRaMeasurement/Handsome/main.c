@@ -44,18 +44,46 @@ static uint8_t AppData[LORAWAN_APP_DATA_MAX_SIZE];
  */
 static RadioEvents_t RadioEvents;
 
-static uint8_t is_on = 0;
-static uint8_t rec_node_id = 0;
+uint8_t pw_map[] = {20, 16, 14, 12, 10, 7, 5, 2};
+
+// node state
+// LSB and MSB are implementation-specific
+typedef struct sState
+{
+    uint8_t id; // node id
+    uint8_t is_on : 1; // flag: send pkt (is_on == 1) or not (is_on == 0)
+    uint8_t sf : 3; // spreading factor [0:SF6, 1:SF7, 2:SF8, 3:SF9, 4:SF10, 5:SF11, 6:SF12]
+    uint8_t cr : 2; // coderate [0: 4/5, 1: 4/6, 2: 4/7, 3: 4/8], +1 when passed to SetTxConfig
+    uint8_t bw : 2; // bandwidth [0: 125 kHz, 1: 250 kHz, 2: 500 kHz, 3: Reserved]
+    uint8_t pw_index : 3; // power index [0:20, 1:16, 2:14, 3:12, 4:10, 5:7, 6:5, 7:2] (dBm)
+    uint8_t dc : 5; // tx dutycycle (>= 3s)
+    uint8_t freq_index; // freq index: 96 channels
+    uint8_t pkt_size; // packet size (>= 8 bytes)
+    uint32_t cnt : 24; // packet counter
+}State; // 8 bytes
+
+State state =
+{
+    .id = 1,
+    .bw = 0,
+    .cr = 0,
+    .sf = 6,
+    .is_on = 0,
+    .dc = 3,
+    .pw_index = 0,
+    .freq_index = 0,
+    .pkt_size = 8,
+    .cnt = 0
+};
+
 static uint8_t loc_node_id = 1;
-static uint8_t rec_datarate = 0;
-static uint32_t sent_cnt = 0;
 
 static void OnRadioTxDone(void)
 {
     Radio.SetChannel(507500000); // Hz
     Radio.SetRxConfig(MODEM_LORA, 0, 12, 1, 0, 8, 5000, false, 0, false, 0, 0, false, true);
     Radio.Rx(0);
-    //printf("OnRadioTxDone\n");
+    // printf("OnRadioTxDone\n");
 }
 
 static void OnRadioRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
@@ -67,26 +95,10 @@ static void OnRadioRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t 
     // }
     // printf("\n");
 
-    if (size == 3)
+    if (size == 5 && *payload == loc_node_id)
     {
-        for (uint8_t i = 0; i < size; i++)
-        {
-            if (i == 0)
-            {
-                rec_node_id = *payload;
-            }
-            else if (i == 1)
-            {
-                is_on = (loc_node_id == rec_node_id) ? (*payload) : 0;
-            }
-
-            else if (i == 2 && loc_node_id == rec_node_id)
-            {
-                rec_datarate = *payload;
-            }
-            payload++;
-        }
-        sent_cnt = 0;
+        memcpy(&state, payload, 5);
+        state.cnt = 0;
     }
 }
 
@@ -128,15 +140,7 @@ int main(void)
     Radio.SetPublicNetwork(PublicNetwork);
     // Radio.Sleep( );
 
-    uint32_t tx_dutycycle = 3000; // ms
-    int8_t power = 20;         // [20, 16, 14, 12, 10, 7, 5, 2] dBm
-    uint32_t freq = 486300000; // Hz
-    uint32_t datarate = 7;     // Spreading Factor
-    uint32_t bandwidth = 0;    // 0: 125 kHz, 1: 250 kHz, 2: 500 kHz
-    uint8_t coderate = 1;      // 1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8
-    uint16_t data_size = 16;   // App Data Size, 32 bytes
-
-    // log_info("scanf NODE_ID, POWER, SF, BW, CR, TX_DUTYCYCLE, APPDATASIZE, FREQUENCY\n");
+    // log_info("scanf ID, PW, SF, BW, CR, TX_DUTYCYCLE, DATASIZE, FREQ\n");
     // scanf("%d", &loc_node_id);
     // scanf("%d", (uint32_t*)&power);
     // scanf("%d", &datarate);
@@ -146,9 +150,6 @@ int main(void)
     // scanf("%d", (uint32_t*)&data_size);
     // scanf("%d", &freq);
 
-    memcpy(AppData, &loc_node_id, 1);      // store node id in AppData
-    memcpy(AppData + 4, &tx_dutycycle, 4); // store dutycycle in AppData
-    memcpy(AppData + 8, &data_size, 2);    // store data size in AppData
     // log_info("AppData: ");
     // for (int i = 0; i < data_size; i++)
     // {
@@ -160,9 +161,9 @@ int main(void)
 
     while (1)
     {
-        if (!is_on)
+        if (!state.is_on)
         {
-            DelayMs(tx_dutycycle); // have a rest~~
+            DelayMs(state.dc * 1000); // have a rest~~
             continue;
         }
 
@@ -170,7 +171,7 @@ int main(void)
         * \brief Sets the transmission parameters
         *
         * \param [IN] modem        Radio modem to be used [0: FSK, 1: LoRa]
-        * \param [IN] power        Sets the output power [dBm] [0: 20, 16, 14, 12, 10, 7, 5, 2]
+        * \param [IN] power        Sets the output power [dBm] [20, 16, 14, 12, 10, 7, 5, 2]
         * \param [IN] fdev         Sets the frequency deviation (FSK only)
         *                          FSK : [Hz]
         *                          LoRa: 0
@@ -208,17 +209,10 @@ int main(void)
                             uint8_t HopPeriod, bool iqInverted, uint32_t timeout
         );*/
         Radio.Standby();
-        Radio.SetChannel(freq);
-        if (rec_datarate != 0)
-        {
-            Radio.SetTxConfig(MODEM_LORA, power, 0, bandwidth, rec_datarate, coderate,
-                              8, false, true, 0, 0, false, 3000);
-        }
-        else
-        {
-            Radio.SetTxConfig(MODEM_LORA, power, 0, bandwidth, datarate, coderate, 8,
-                              false, true, 0, 0, false, 3000);
-        }
+        Radio.SetChannel(state.freq_index*200000 + 470300000);
+        Radio.SetTxConfig(MODEM_LORA, pw_map[state.pw_index], 0, state.bw,
+                            state.sf + 6, state.cr + 1,
+                            8, false, true, 0, 0, false, 3000);
         /*!
         * \brief Sets the maximum payload length.
         *
@@ -227,17 +221,17 @@ int main(void)
         *
         void SX1276SetMaxPayloadLength( RadioModems_t modem, uint8_t max );*/
         // Setup maximum payload lenght of the radio driver
-        Radio.SetMaxPayloadLength(MODEM_LORA, data_size);
+        Radio.SetMaxPayloadLength(MODEM_LORA, state.pkt_size);
 
-        memcpy(AppData + 12, &sent_cnt, 4); // store count-number in AppData
+        memcpy(AppData, &state, 8);      // store node id in AppData
 
         // Send now
-        Radio.Send(AppData, data_size);
+        Radio.Send(AppData, state.pkt_size);
 
         // log_debug("sent_cnt:%d, power:%d, bw:%d, dr:%d, cr:%d, freq:%d\n", sent_cnt++,
         //           power, bandwidth, datarate, coderate, freq);
-        sent_cnt++;
+        state.cnt++;
 
-        DelayMs(tx_dutycycle); // have a rest~~
+        DelayMs(state.dc * 1000); // have a rest~~
     }
 }

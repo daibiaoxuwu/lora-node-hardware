@@ -57,7 +57,7 @@
 /*!
  * LoRaWAN confirmed messages
  */
-#define LORAWAN_CONFIRMED_MSG_ON                    true
+#define LORAWAN_CONFIRMED_MSG_ON                    false
 
 /*!
  * LoRaWAN Adaptive Data Rate
@@ -202,6 +202,7 @@ static void PrepareTxFrame( uint8_t port )
                 memset1( AppData, 0, AppDataSize );
                 memcpy1( AppData, (uint8_t *) &node_id, 4 );
                 memcpy1( AppData + 4, (uint8_t *) &sent_cnt, 4 );
+                sent_cnt++;
                 break;
             }
             default:
@@ -790,7 +791,7 @@ int main( void )
                     NextTx = SendFrame( );
 
                     last_time = TimerGetCurrentTime();
-                    log_debug("Device sending at: %d\n", last_time);
+                    log_debug("Device sending at: %ld\n", last_time);
                 }
                 if( ComplianceTest.Running == true )
                 {
