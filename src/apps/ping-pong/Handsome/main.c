@@ -124,6 +124,8 @@ const uint8_t PongMsg[] = "QONG";
 
 uint16_t BufferSize = BUFFER_SIZE;
 uint8_t Buffer[BUFFER_SIZE];
+uint32_t recv_cnt = 0;
+uint32_t cnt = 0;
 
 States_t State = LOWPOWER;
 
@@ -234,8 +236,7 @@ int main( void )
                     {
                         // Indicates on a LED that the received frame is a PONG
                         // GpioWrite( &Led1, GpioRead( &Led1 ) ^ 1 );
-                        rx_cnt += 1;
-                        printf("receive cnt %d\n", rx_cnt);
+                        // printf("receive pong, sending ping\n");
 
                         // Send the next PING frame
                         Buffer[0] = 'Q';
@@ -243,10 +244,14 @@ int main( void )
                         Buffer[2] = 'N';
                         Buffer[3] = 'G';
                         // We fill the buffer with numbers for the payload
-                        for( i = 4; i < BufferSize; i++ )
-                        {
-                            Buffer[i] = i - 4;
-                        }
+                        // for( i = 4; i < BufferSize; i++ )
+                        // {
+                        //     Buffer[i] = i - 4;
+                        // }
+                        memcpy(&recv_cnt, Buffer+4, 4);
+                        printf("master recv cnt: %d\n", recv_cnt);
+                        memcpy(Buffer+4, &cnt, 4);
+                        cnt++;
                         DelayMs( 1 );
                         Radio.Send( Buffer, BufferSize );
                     }
@@ -255,7 +260,7 @@ int main( void )
                         //isMaster = false;
                         rx_cnt += 1;
                         // GpioWrite( &Led2, 1 ); // Set LED off
-                        printf("receive cnt %d\n", rx_cnt);
+                        // printf("receive ping\n");
                         Radio.Rx( RX_TIMEOUT_VALUE );
                     }
                     else // valid reception but neither a PING or a PONG message
@@ -273,8 +278,7 @@ int main( void )
                     {
                         // Indicates on a LED that the received frame is a PING
                         // GpioWrite( &Led1, GpioRead( &Led1 ) ^ 1 );
-                        rx_cnt += 1;
-                        printf("receive %d\n", rx_cnt);
+                        // printf("receive ping, sending pong\n");
 
                         // Send the reply to the PONG string
                         Buffer[0] = 'Q';
@@ -282,10 +286,14 @@ int main( void )
                         Buffer[2] = 'N';
                         Buffer[3] = 'G';
                         // We fill the buffer with numbers for the payload
-                        for( i = 4; i < BufferSize; i++ )
-                        {
-                            Buffer[i] = i - 4;
-                        }
+                        // for( i = 4; i < BufferSize; i++ )
+                        // {
+                        //     Buffer[i] = i - 4;
+                        // }
+                        memcpy(&recv_cnt, Buffer+4, 4);
+                        printf("slave recv cnt: %d\n", recv_cnt);
+                        memcpy(Buffer+4, &cnt, 4);
+                        cnt++;
                         DelayMs( 1 );
                         Radio.Send( Buffer, BufferSize );
                     }
@@ -302,8 +310,7 @@ int main( void )
             // Indicates on a LED that we have sent a PING [Master]
             // Indicates on a LED that we have sent a PONG [Slave]
             // GpioWrite( &Led2, GpioRead( &Led2 ) ^ 1 );
-            send_cnt += 1;
-            printf("send cnt %d\n", send_cnt);
+            // printf("send frame\n");
             Radio.Rx( RX_TIMEOUT_VALUE );
             State = LOWPOWER;
             break;
@@ -316,10 +323,14 @@ int main( void )
                 Buffer[1] = 'I';
                 Buffer[2] = 'N';
                 Buffer[3] = 'G';
-                for( i = 4; i < BufferSize; i++ )
-                {
-                    Buffer[i] = i - 4;
-                }
+                // for( i = 4; i < BufferSize; i++ )
+                // {
+                //     Buffer[i] = i - 4;
+                // }
+                memcpy(&recv_cnt, Buffer+4, 4);
+                printf("master recv cnt: %d\n", recv_cnt);
+                memcpy(Buffer+4, &cnt, 4);
+                cnt++;
                 DelayMs( 1 );
                 Radio.Send( Buffer, BufferSize );
             }
@@ -352,7 +363,7 @@ void OnTxDone( void )
 
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
-    //printf("rx done\n");
+    // printf("rx done\n");
     Radio.Sleep( );
     BufferSize = size;
     memcpy( Buffer, payload, BufferSize );
