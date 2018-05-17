@@ -61,5 +61,17 @@
         "REGION_KR920":"OFF",
         "REGION_IN865":"OFF",
         "REGION_US915_HYBRID":"OFF"
+    },
+    "files.associations": {
+        "board.h": "c",
+        "serialio.h": "c",
+        "comissioning.h": "c",
+        "timer.h": "c",
+        "radio.h": "c",
+        "adc.h": "c",
+        "rtc-board.h": "c",
+        "utilities.h": "c",
+        "i2c.h": "c",
+        "uart.h": "c"
     }
 }

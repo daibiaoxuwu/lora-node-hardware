@@ -28,6 +28,9 @@
 #include "radio.h"
 #include "serialio.h"
 
+#define REGION_CN470      1
+#define USE_MODEM_LORA    1
+
 #if defined( REGION_AS923 )
 
 #define RF_FREQUENCY                                923000000 // Hz
@@ -38,7 +41,7 @@
 
 #elif defined( REGION_CN470 )
 
-#define RF_FREQUENCY                                471500000 // Hz
+#define RF_FREQUENCY                                478500000 // Hz
 
 #elif defined( REGION_CN779 )
 
@@ -116,8 +119,8 @@ typedef enum
 #define RX_TIMEOUT_VALUE                            1000
 #define BUFFER_SIZE                                 64 // Define the payload size here
 
-const uint8_t PingMsg[] = "PING";
-const uint8_t PongMsg[] = "PONG";
+const uint8_t PingMsg[] = "QING";
+const uint8_t PongMsg[] = "QONG";
 
 uint16_t BufferSize = BUFFER_SIZE;
 uint8_t Buffer[BUFFER_SIZE];
@@ -163,12 +166,13 @@ void OnRxTimeout( void );
  */
 void OnRxError( void );
 
+static uint32_t send_cnt = 0, rx_cnt = 0;
 /**
  * Main application entry point.
  */
 int main( void )
 {
-    bool isMaster = true;
+    bool isMaster = false;
     uint8_t i;
 
     // Target board initialization
@@ -230,10 +234,11 @@ int main( void )
                     {
                         // Indicates on a LED that the received frame is a PONG
                         // GpioWrite( &Led1, GpioRead( &Led1 ) ^ 1 );
-                        printf("receive pong, sending ping\n");
+                        rx_cnt += 1;
+                        printf("receive cnt %d\n", rx_cnt);
 
                         // Send the next PING frame
-                        Buffer[0] = 'P';
+                        Buffer[0] = 'Q';
                         Buffer[1] = 'I';
                         Buffer[2] = 'N';
                         Buffer[3] = 'G';
@@ -247,14 +252,15 @@ int main( void )
                     }
                     else if( strncmp( ( const char* )Buffer, ( const char* )PingMsg, 4 ) == 0 )
                     { // A master already exists then become a slave
-                        isMaster = false;
+                        //isMaster = false;
+                        rx_cnt += 1;
                         // GpioWrite( &Led2, 1 ); // Set LED off
-                        printf("receive ping\n");
+                        printf("receive cnt %d\n", rx_cnt);
                         Radio.Rx( RX_TIMEOUT_VALUE );
                     }
                     else // valid reception but neither a PING or a PONG message
                     {    // Set device as master ans start again
-                        isMaster = true;
+                        //isMaster = true;
                         Radio.Rx( RX_TIMEOUT_VALUE );
                     }
                 }
@@ -267,10 +273,11 @@ int main( void )
                     {
                         // Indicates on a LED that the received frame is a PING
                         // GpioWrite( &Led1, GpioRead( &Led1 ) ^ 1 );
-                        printf("receive ping, sending pong\n");
+                        rx_cnt += 1;
+                        printf("receive %d\n", rx_cnt);
 
                         // Send the reply to the PONG string
-                        Buffer[0] = 'P';
+                        Buffer[0] = 'Q';
                         Buffer[1] = 'O';
                         Buffer[2] = 'N';
                         Buffer[3] = 'G';
@@ -284,7 +291,7 @@ int main( void )
                     }
                     else // valid reception but not a PING as expected
                     {    // Set device as master and start again
-                        isMaster = true;
+                        //isMaster = true;
                         Radio.Rx( RX_TIMEOUT_VALUE );
                     }
                 }
@@ -295,7 +302,8 @@ int main( void )
             // Indicates on a LED that we have sent a PING [Master]
             // Indicates on a LED that we have sent a PONG [Slave]
             // GpioWrite( &Led2, GpioRead( &Led2 ) ^ 1 );
-            printf("send frame\n");
+            send_cnt += 1;
+            printf("send cnt %d\n", send_cnt);
             Radio.Rx( RX_TIMEOUT_VALUE );
             State = LOWPOWER;
             break;
@@ -304,7 +312,7 @@ int main( void )
             if( isMaster == true )
             {
                 // Send the next PING frame
-                Buffer[0] = 'P';
+                Buffer[0] = 'Q';
                 Buffer[1] = 'I';
                 Buffer[2] = 'N';
                 Buffer[3] = 'G';
@@ -344,7 +352,7 @@ void OnTxDone( void )
 
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
-    printf("rx done\n");
+    //printf("rx done\n");
     Radio.Sleep( );
     BufferSize = size;
     memcpy( Buffer, payload, BufferSize );

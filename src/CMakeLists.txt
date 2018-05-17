@@ -172,7 +172,7 @@ elseif(BOARD STREQUAL SAML21)
 
 elseif(BOARD STREQUAL Handsome)
     # Configure toolchain for Handsome
-    set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/boards/Handsome/cmsis/arm-gcc/stm32l052xx_flash.ld)
+    set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/boards/Handsome/cmsis/arm-gcc/stm32l053xx_flash.ld)
     include(stm32l0)
 
     # Build platform specific board implementation
@@ -224,5 +224,9 @@ elseif(APPLICATION STREQUAL BootLoader)
 elseif(APPLICATION STREQUAL LoRaMeasurement)
 
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/apps/LoRaMeasurement)
+
+elseif(APPLICATION STREQUAL multi-hop)
+
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/apps/multi-hop)
 
 endif()
