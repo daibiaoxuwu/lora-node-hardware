@@ -88,18 +88,28 @@ static void OnRadioTxDone(void)
 
 static void OnRadioRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
-    // printf("OnRadioRxDone\n");
-    // for (int i = 0; i < size; i++)
-    // {
-    //     printf("%x ", payload[i]);
-    // }
-    // printf("\n");
-
-    if (size == 5 && *payload == loc_node_id)
+    uint32_t d_cnt = 0;
+    if (size == 4)
     {
-        memcpy(&state, payload, 5);
-        state.cnt = 0;
+        for (int i = 0; i < size; i++)
+        {
+            d_cnt += payload[i];
+            if (i < size - 1) d_cnt <<= 8;
+        }
+        printf("cnt: %d, rssi: %d, snr: %d\n", d_cnt, rssi, snr);
+        // printf("cnt: %d, rssi0: %x, rssi1: %x, snr: %x\n", d_cnt, (rssi>>8)&0xFF,rssi&0xFF, snr);
+        // for (int i = 0; i < size; i++)
+        // {
+        //     printf("%x ", payload[i]);
+        // }
+        // printf("\n");
     }
+
+    // if (size == 5 && *payload == loc_node_id)
+    // {
+    //     memcpy(&state, payload, 5);
+    //     state.cnt = 0;
+    // }
 }
 
 static void OnRadioRxError(void)
@@ -161,77 +171,81 @@ int main(void)
 
     while (1)
     {
-        if (!state.is_on)
-        {
-            DelayMs(state.dc * 1000); // have a rest~~
-            continue;
-        }
+        // if (!state.is_on)
+        // {
+        //     DelayMs(state.dc * 1000); // have a rest~~
+        //     continue;
+        // }
 
-        /*!
-        * \brief Sets the transmission parameters
-        *
-        * \param [IN] modem        Radio modem to be used [0: FSK, 1: LoRa]
-        * \param [IN] power        Sets the output power [dBm] [20, 16, 14, 12, 10, 7, 5, 2]
-        * \param [IN] fdev         Sets the frequency deviation (FSK only)
-        *                          FSK : [Hz]
-        *                          LoRa: 0
-        * \param [IN] bandwidth    Sets the bandwidth (LoRa only)
-        *                          FSK : 0
-        *                          LoRa: [0: 125 kHz, 1: 250 kHz,
-        *                                 2: 500 kHz, 3: Reserved]
-        * \param [IN] datarate     Sets the Datarate
-        *                          FSK : 600..300000 bits/s
-        *                          LoRa: [6: 64, 7: 128, 8: 256, 9: 512,
-        *                                10: 1024, 11: 2048, 12: 4096  chips]
-        * \param [IN] coderate     Sets the coding rate (LoRa only)
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
-        * \param [IN] preambleLen  Sets the preamble length
-        *                          FSK : Number of bytes
-        *                          LoRa: Length in symbols (the hardware adds 4 more symbols)
-        * \param [IN] fixLen       Fixed length packets [0: variable, 1: fixed]
-        * \param [IN] crcOn        Enables disables the CRC [0: OFF, 1: ON]
-        * \param [IN] FreqHopOn    Enables disables the intra-packet frequency hopping
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: [0: OFF, 1: ON]
-        * \param [IN] HopPeriod    Number of symbols bewteen each hop
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: Number of symbols
-        * \param [IN] iqInverted   Inverts IQ signals (LoRa only)
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: [0: not inverted, 1: inverted]
-        * \param [IN] timeout      Transmission timeout [ms]
-        *
-        void    ( *SetTxConfig )( RadioModems_t modem, int8_t power, uint32_t fdev,
-                            uint32_t bandwidth, uint32_t datarate,
-                            uint8_t coderate, uint16_t preambleLen,
-                            bool fixLen, bool crcOn, bool FreqHopOn,
-                            uint8_t HopPeriod, bool iqInverted, uint32_t timeout
-        );*/
-        Radio.Standby();
-        Radio.SetChannel(state.freq_index*200000 + 470300000);
-        Radio.SetTxConfig(MODEM_LORA, pw_map[state.pw_index], 0, state.bw,
-                            state.sf + 6, state.cr + 1,
-                            8, false, true, 0, 0, false, 3000);
-        /*!
-        * \brief Sets the maximum payload length.
-        *
-        * \param [IN] modem      Radio modem to be used [0: FSK, 1: LoRa]
-        * \param [IN] max        Maximum payload length in bytes
-        *
-        void SX1276SetMaxPayloadLength( RadioModems_t modem, uint8_t max );*/
-        // Setup maximum payload lenght of the radio driver
-        Radio.SetMaxPayloadLength(MODEM_LORA, state.pkt_size);
+        // /*!
+        // * \brief Sets the transmission parameters
+        // *
+        // * \param [IN] modem        Radio modem to be used [0: FSK, 1: LoRa]
+        // * \param [IN] power        Sets the output power [dBm] [20, 16, 14, 12, 10, 7, 5, 2]
+        // * \param [IN] fdev         Sets the frequency deviation (FSK only)
+        // *                          FSK : [Hz]
+        // *                          LoRa: 0
+        // * \param [IN] bandwidth    Sets the bandwidth (LoRa only)
+        // *                          FSK : 0
+        // *                          LoRa: [0: 125 kHz, 1: 250 kHz,
+        // *                                 2: 500 kHz, 3: Reserved]
+        // * \param [IN] datarate     Sets the Datarate
+        // *                          FSK : 600..300000 bits/s
+        // *                          LoRa: [6: 64, 7: 128, 8: 256, 9: 512,
+        // *                                10: 1024, 11: 2048, 12: 4096  chips]
+        // * \param [IN] coderate     Sets the coding rate (LoRa only)
+        // *                          FSK : N/A ( set to 0 )
+        // *                          LoRa: [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
+        // * \param [IN] preambleLen  Sets the preamble length
+        // *                          FSK : Number of bytes
+        // *                          LoRa: Length in symbols (the hardware adds 4 more symbols)
+        // * \param [IN] fixLen       Fixed length packets [0: variable, 1: fixed]
+        // * \param [IN] crcOn        Enables disables the CRC [0: OFF, 1: ON]
+        // * \param [IN] FreqHopOn    Enables disables the intra-packet frequency hopping
+        // *                          FSK : N/A ( set to 0 )
+        // *                          LoRa: [0: OFF, 1: ON]
+        // * \param [IN] HopPeriod    Number of symbols bewteen each hop
+        // *                          FSK : N/A ( set to 0 )
+        // *                          LoRa: Number of symbols
+        // * \param [IN] iqInverted   Inverts IQ signals (LoRa only)
+        // *                          FSK : N/A ( set to 0 )
+        // *                          LoRa: [0: not inverted, 1: inverted]
+        // * \param [IN] timeout      Transmission timeout [ms]
+        // *
+        // void    ( *SetTxConfig )( RadioModems_t modem, int8_t power, uint32_t fdev,
+        //                     uint32_t bandwidth, uint32_t datarate,
+        //                     uint8_t coderate, uint16_t preambleLen,
+        //                     bool fixLen, bool crcOn, bool FreqHopOn,
+        //                     uint8_t HopPeriod, bool iqInverted, uint32_t timeout
+        // );*/
+        // Radio.Standby();
+        // Radio.SetChannel(state.freq_index*200000 + 470300000);
+        // Radio.SetTxConfig(MODEM_LORA, pw_map[state.pw_index], 0, state.bw,
+        //                     state.sf + 6, state.cr + 1,
+        // // Radio.SetChannel(475500000);
+        // // Radio.SetTxConfig(MODEM_LORA, 20, 0, 0,
+        // //                     12, 1,
+        //                     8, false, true, 0, 0, false, 3000);
+        // /*!
+        // * \brief Sets the maximum payload length.
+        // *
+        // * \param [IN] modem      Radio modem to be used [0: FSK, 1: LoRa]
+        // * \param [IN] max        Maximum payload length in bytes
+        // *
+        // void SX1276SetMaxPayloadLength( RadioModems_t modem, uint8_t max );*/
+        // // Setup maximum payload lenght of the radio driver
+        // Radio.SetMaxPayloadLength(MODEM_LORA, state.pkt_size);
 
-        memcpy(AppData, &state, 8);      // store node id in AppData
+        // memcpy(AppData, &state, 8);      // store node id in AppData
 
-        // Send now
-        Radio.Send(AppData, state.pkt_size);
+        // // Send now
+        // Radio.Send(AppData, state.pkt_size);
 
-        // log_debug("sent_cnt:%d, power:%d, bw:%d, dr:%d, cr:%d, freq:%d\n", sent_cnt++,
-        //           power, bandwidth, datarate, coderate, freq);
-        state.cnt++;
+        // // log_debug("sent_cnt:%d\n", state.cnt++);
+        // state.cnt++;
+        // // log_debug("sent_cnt:%d, power:%d, bw:%d, dr:%d, cr:%d, freq:%d\n", sent_cnt++,
+        //         //   power, bandwidth, datarate, coderate, freq);
 
-        DelayMs(state.dc * 1000); // have a rest~~
+        // DelayMs(state.dc * 1000); // have a rest~~
     }
 }

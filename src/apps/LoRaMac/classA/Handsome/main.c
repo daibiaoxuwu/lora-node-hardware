@@ -64,7 +64,7 @@
  *
  * \remark Please note that when ADR is enabled the end-device should be static
  */
-#define LORAWAN_ADR_ON                              1
+#define LORAWAN_ADR_ON                              0
 
 #if defined( REGION_EU868 )
 
@@ -667,14 +667,18 @@ int main( void )
 
     uint32_t tmp;
     printf("Start LoRaWAN, read NodeID, DevEui AppKey:\n");
+    uint8_t _deveui[] = {0x10, 0x10, 0x10, 0x10, 0x00, 0x00, 0x00, 0x02};
+    uint8_t _key[] = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x4D};
 
-    scanf("%ld", &node_id);
+    // scanf("%ld", &node_id);
+    node_id = 2;
     printf("NodeID: %ld\n", node_id);
 
     for (int i = 0; i < 8; i++)
     {
-        scanf("%lx", &tmp);
-        DevEui[i] = tmp;
+        // scanf("%lx", &tmp);
+        // DevEui[i] = tmp;
+        DevEui[i] = _deveui[i];
     }
     printf("DevEui:");
     for (int i = 0; i < 8; i++)
@@ -684,8 +688,9 @@ int main( void )
 
     for (int i = 0; i < 16; i++)
     {
-        scanf("%lx", &tmp);
-        AppKey[i] = tmp;
+        // scanf("%lx", &tmp);
+        // AppKey[i] = tmp;
+        AppKey[i] = _key[i];
     }
     printf("\nAppKey:");
     for (int i = 0; i < 16; i++)

@@ -26,8 +26,8 @@
 /*!
  * FIFO buffers size
  */
-#define SERIALIO_FIFO_TX_SIZE                   64
-#define SERIALIO_FIFO_RX_SIZE                   64
+#define SERIALIO_FIFO_TX_SIZE                   128
+#define SERIALIO_FIFO_RX_SIZE                   128
 
 #define USART_BAUDRATE                          115200
 
