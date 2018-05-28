@@ -21,6 +21,7 @@
 #include "board.h"
 #include "delay.h"
 #include "gpio.h"
+#include "gps.h"
 #include "radio.h"
 #include "serialio.h"
 #include "timer.h"
@@ -28,6 +29,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+
+// string format for longitude and latitude
+char lng_s[20];
+char lat_s[20];
 
 /*!
  * User application data buffer size
@@ -86,9 +91,23 @@ static void OnRadioTxDone(void)
     // printf("OnRadioTxDone\n");
 }
 
+static void double2s(char *s, double d)
+{
+    char *tmpSign = (d < 0) ? "-" : "";
+    float tmpVal = (d < 0) ? -d : d;
+
+    int tmpInt1 = tmpVal;                  // Get the integer (678).
+    float tmpFrac = tmpVal - tmpInt1;      // Get fraction (0.0123).
+    int tmpInt2 = trunc(tmpFrac * 1000000);  // Turn into integer (123).
+
+    // Print as parts, note that you need 0-padding for fractional bit.
+    sprintf(s, "%s%d.%06d", tmpSign, tmpInt1, tmpInt2);
+}
+
 static void OnRadioRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
     uint32_t d_cnt = 0;
+    double latitude = 0, longitude = 0;
     if (size == 4)
     {
         for (int i = 0; i < size; i++)
@@ -96,8 +115,23 @@ static void OnRadioRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t 
             d_cnt += payload[i];
             if (i < size - 1) d_cnt <<= 8;
         }
-        printf("cnt: %d, rssi: %d, snr: %d\n", d_cnt, rssi, snr);
-        // printf("cnt: %d, rssi0: %x, rssi1: %x, snr: %x\n", d_cnt, (rssi>>8)&0xFF,rssi&0xFF, snr);
+        if( snr & 0x80 ) // The SNR sign bit is 1
+        {
+            // Invert and divide by 4
+            snr = ( ( ~snr + 1 ) & 0xFF ) >> 2;
+            snr = -snr;
+        }
+        else
+        {
+            // Divide by 4
+            snr = ( snr & 0xFF ) >> 2;
+        }
+        GpsGetLatestGpsPositionDouble(&latitude, &longitude);
+
+        double2s(lat_s, latitude);
+        double2s(lng_s, longitude);
+        // Print as parts, note that you need 0-padding for fractional bit.
+        printf("cnt:%d,snr:%d,rssi:%d,lng:%s,lat:%s\n", d_cnt, snr, rssi, lng_s, lat_s);
         // for (int i = 0; i < size; i++)
         // {
         //     printf("%x ", payload[i]);
@@ -222,9 +256,9 @@ int main(void)
         // Radio.SetChannel(state.freq_index*200000 + 470300000);
         // Radio.SetTxConfig(MODEM_LORA, pw_map[state.pw_index], 0, state.bw,
         //                     state.sf + 6, state.cr + 1,
-        // // Radio.SetChannel(475500000);
-        // // Radio.SetTxConfig(MODEM_LORA, 20, 0, 0,
-        // //                     12, 1,
+        // Radio.SetChannel(475500000);
+        // Radio.SetTxConfig(MODEM_LORA, 20, 0, 0,
+        //                     12, 1,
         //                     8, false, true, 0, 0, false, 3000);
         // /*!
         // * \brief Sets the maximum payload length.
