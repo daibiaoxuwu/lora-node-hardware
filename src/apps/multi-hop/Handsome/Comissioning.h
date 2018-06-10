@@ -25,8 +25,8 @@ Maintainer: Miguel Luis and Gregory Cristian
 /*
 * define Rx/Tx config
 */
-#define RF_FREQUENCY                                478500000 // Hz
-#define TX_OUTPUT_POWER                             14        // dBm
+#define RF_FREQUENCY                                475500000 // Hz
+#define TX_OUTPUT_POWER                             2        // dBm
 #define LORA_BANDWIDTH                              0         // [0: 125 kHz,
                                                               //  1: 250 kHz,
                                                               //  2: 500 kHz,
@@ -52,18 +52,20 @@ Maintainer: Miguel Luis and Gregory Cristian
 #define RTSINTERVAL                                 300     
 #define WAITFORDATATIME                             300    
 #define BACKOFFTIME                                 150
+#define CAD_BACKOFF_TIME                            150
+#define CAD_AGAIN_TIME                              30
 
 #define AWAKETIME                                   3000
 #define SLEEPTIME                                   1000
 
 static uint32_t router_interval = ROUTER_MIN_INTERVAL;
-static TimerEvent_t SendRouterTimer, SendDataTimer, BackOffTimer, DutyCycleTimer; 
+static TimerEvent_t SendRouterTimer, SendDataTimer, BackOffTimer, DutyCycleTimer, CADAgainTimer; 
 static bool beginRouterTimer = false;
 
 /*
 * define addr
 */
-#define DEVICE_ADDRESS                               ( uint16_t )0x0000
+#define DEVICE_ADDRESS                               ( uint16_t )0x0009
 #define GATEWAY_ADDRESS						         ( uint16_t )0x0000
 
 /*
@@ -72,12 +74,25 @@ static bool beginRouterTimer = false;
 #define MESHLORA_FIX_RELAY                           true
 #define FIXED_RELAY_ADDRESS						     ( uint16_t )0x0000
 
+#define SHOW_DEBUG_DETAIL                            false
+#define SHOW_TIMEONAIR                               false
+#define SHOW_FREQ_HOP                                false
+
 //acount pkts
-#define TOTAL_NODES                                      3
+#define TOTAL_NODES                                      26
 static int32_t getDataNum[TOTAL_NODES];
-#define RELAY_NODES                                      3
+#define RELAY_NODES                                      26
 static int32_t relayDataNum[RELAY_NODES];
 static int32_t relaySendDataNum[RELAY_NODES];
+static int32_t nodeSendDataNum = 0;
+static int32_t nodeSendRouterNum = 0;
+
+//freq hopping
+#define HOP_NUM  8
+static uint32_t freq_hop[HOP_NUM] = {471500000, 472500000, 473500000, 474500000, 476500000, 477500000, 
+                          478500000, 479500000};
+static int8_t tx_freq_ind = -1, rx_freq_ind = -1;
+static uint8_t cad_detect_time = 0;
 
 /*
 * define pts size
@@ -92,8 +107,7 @@ static int32_t relaySendDataNum[RELAY_NODES];
 
 /*
 * define CAD Backoff
-*/
-#define CAD_BACKOFF_TIME                              200    //ms  
+*/  
 static bool meshLoRaChannelActivityDetected = false;
 
 /*
@@ -170,7 +184,7 @@ typedef struct uMeshLoRaFrameHeader
 /*
 * router table
 */
-#define MESHLORA_ROUTER_TABLES_LENGTH                 100
+#define MESHLORA_ROUTER_TABLES_LENGTH                 50
 
 static uint32_t meshLoRaRouterSequenceNum = 0;
 static int8_t meshLoRaCurrentIndLen = 0;    //indicate nums of dev_addrs
@@ -190,8 +204,8 @@ static uint8_t BufferSize_send = BUFFER_SIZE;
 static uint8_t Buffer_send[BUFFER_SIZE];  //for tx
 
 //Buffer to save pkts wait to send, only data pkts
-#define BUFFER_SAVE_DATA                             6
-#define BUFFER_SAVE_RELAY                            4
+#define BUFFER_SAVE_DATA                             10
+#define BUFFER_SAVE_RELAY                            10
 static uint8_t bf_save_data_now = 0, bf_save_data_have = 0, bf_save_relay_now = 0, bf_save_relay_have = 0;
 static uint16_t lost_data = 0, lost_relay = 0;
 static uint8_t Buffer_save_data_len[BUFFER_SAVE_DATA], Buffer_save_relay_len[BUFFER_SAVE_RELAY];
