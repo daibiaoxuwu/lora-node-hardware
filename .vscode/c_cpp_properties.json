@@ -5,9 +5,14 @@
             "includePath": [
                 "/usr/include",
                 "/usr/local/include",
-                "${workspaceFolder}"
+                "${workspaceFolder}",
+                "${workspaceFolder}/src/boards",
+                "${workspaceFolder}/src/system",
+                "${workspaceFolder}/src/radio",
+                "${workspaceFolder}/src/mac",
+                "${workspaceFolder}/src/mac/region"
             ],
-            "defines": [],
+            "defines": ["REGION_CN470"],
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
