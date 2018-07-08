@@ -72,6 +72,12 @@
         "rtc-board.h": "c",
         "utilities.h": "c",
         "i2c.h": "c",
-        "uart.h": "c"
+        "uart.h": "c",
+        "gps-board.h": "c",
+        "gps.h": "c",
+        "gpio-ioe.h": "c",
+        "board-config.h": "c",
+        "memory": "cpp",
+        "utility": "cpp"
     }
 }

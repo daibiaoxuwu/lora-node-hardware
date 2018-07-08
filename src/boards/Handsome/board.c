@@ -142,6 +142,7 @@ void BoardInitPeriph( void )
 	GpioInit( &DbgPin5, CON_EXT_9, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 #endif
     GpsInit();
+    SHT2xInit();
 }
 
 void BoardInitMcu( void )
