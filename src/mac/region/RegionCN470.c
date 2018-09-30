@@ -43,6 +43,10 @@
  */
 static ChannelParams_t Channels[CN470_MAX_NB_CHANNELS];
 
+static uint16_t MyChannelsMask[CHANNELS_MASK_SIZE] = {
+    0xFF00, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
+};
+
 /*!
  * LoRaMac bands
  */
@@ -306,12 +310,12 @@ void RegionCN470InitDefaults( InitType_t type )
 
             // A single gateway equipped with sx1301 only supports 8 channels
             // we set the min freq = 486.3MHz
-            ChannelsDefaultMask[0] = 0x0000;
-            ChannelsDefaultMask[1] = 0x0000;
-            ChannelsDefaultMask[2] = 0x0000;
-            ChannelsDefaultMask[3] = 0x0000;
-            ChannelsDefaultMask[4] = 0x0000;
-            ChannelsDefaultMask[5] = 0x00FF;
+            ChannelsDefaultMask[0] = MyChannelsMask[0];
+            ChannelsDefaultMask[1] = MyChannelsMask[1];
+            ChannelsDefaultMask[2] = MyChannelsMask[2];
+            ChannelsDefaultMask[3] = MyChannelsMask[3];
+            ChannelsDefaultMask[4] = MyChannelsMask[4];
+            ChannelsDefaultMask[5] = MyChannelsMask[5];
 
             // Update the channels mask
             RegionCommonChanMaskCopy( ChannelsMask, ChannelsDefaultMask, 6 );
@@ -446,12 +450,12 @@ bool RegionCN470AdrNext( AdrNextParams_t* adrNext, int8_t* drOut, int8_t* txPowO
 
                             // A single gateway equipped with sx1301 only supports 8 channels
                             // we set the min freq = 486.3MHz
-                            ChannelsMask[0] = 0x0000;
-                            ChannelsMask[1] = 0x0000;
-                            ChannelsMask[2] = 0x0000;
-                            ChannelsMask[3] = 0x0000;
-                            ChannelsMask[4] = 0x0000;
-                            ChannelsMask[5] = 0x00FF;
+                            ChannelsMask[0] = MyChannelsMask[0];
+                            ChannelsMask[1] = MyChannelsMask[1];
+                            ChannelsMask[2] = MyChannelsMask[2];
+                            ChannelsMask[3] = MyChannelsMask[3];
+                            ChannelsMask[4] = MyChannelsMask[4];
+                            ChannelsMask[5] = MyChannelsMask[5];
 
                         }
                     }
@@ -580,12 +584,12 @@ uint8_t RegionCN470LinkAdrReq( LinkAdrReqParams_t* linkAdrReq, int8_t* drOut, in
 
             // A single gateway equipped with sx1301 only supports 8 channels
             // we set the min freq = 486.3MHz
-            ChannelsMask[0] = 0x0000;
-            ChannelsMask[1] = 0x0000;
-            ChannelsMask[2] = 0x0000;
-            ChannelsMask[3] = 0x0000;
-            ChannelsMask[4] = 0x0000;
-            ChannelsMask[5] = 0x00FF;
+            ChannelsMask[0] = MyChannelsMask[0];
+            ChannelsMask[1] = MyChannelsMask[1];
+            ChannelsMask[2] = MyChannelsMask[2];
+            ChannelsMask[3] = MyChannelsMask[3];
+            ChannelsMask[4] = MyChannelsMask[4];
+            ChannelsMask[5] = MyChannelsMask[5];
         }
         else if( linkAdrParams.ChMaskCtrl == 7 )
         {
@@ -733,12 +737,12 @@ LoRaMacStatus_t RegionCN470NextChannel( NextChanParams_t* nextChanParams, uint8_
 
         // A single gateway equipped with sx1301 only supports 8 channels
         // we set the min freq = 486.3MHz
-        ChannelsMask[0] = 0x0000;
-        ChannelsMask[1] = 0x0000;
-        ChannelsMask[2] = 0x0000;
-        ChannelsMask[3] = 0x0000;
-        ChannelsMask[4] = 0x0000;
-        ChannelsMask[5] = 0x00FF;
+        ChannelsMask[0] = MyChannelsMask[0];
+        ChannelsMask[1] = MyChannelsMask[1];
+        ChannelsMask[2] = MyChannelsMask[2];
+        ChannelsMask[3] = MyChannelsMask[3];
+        ChannelsMask[4] = MyChannelsMask[4];
+        ChannelsMask[5] = MyChannelsMask[5];
     }
 
     if( nextChanParams->AggrTimeOff <= TimerGetElapsedTime( nextChanParams->LastAggrTx ) )
