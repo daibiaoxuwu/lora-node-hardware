@@ -78,6 +78,7 @@
         "gpio-ioe.h": "c",
         "board-config.h": "c",
         "memory": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "iostream": "c"
     }
 }

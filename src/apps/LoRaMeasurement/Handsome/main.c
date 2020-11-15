@@ -62,7 +62,7 @@ typedef struct sState
     uint8_t cr : 2; // coderate [0: 4/5, 1: 4/6, 2: 4/7, 3: 4/8], +1 when passed to SetTxConfig
     uint8_t bw : 2; // bandwidth [0: 125 kHz, 1: 250 kHz, 2: 500 kHz, 3: Reserved]
     uint8_t pw_index : 3; // power index [0:20, 1:16, 2:14, 3:12, 4:10, 5:7, 6:5, 7:2] (dBm)
-    uint8_t dc : 5; // tx dutycycle (>= 3s)
+    uint8_t dc : 7; // tx dutycycle (>= 3s)
     uint8_t freq_index; // freq index: 96 channels
     uint8_t pkt_size; // packet size (>= 8 bytes)
     uint32_t cnt : 24; // packet counter
@@ -78,15 +78,37 @@ State state =
     .dc = 3,
     .pw_index = 0,
     .freq_index = 85,
-    .pkt_size = 18,
+    .pkt_size = 40,
     .cnt = 0
 };
 
 static uint8_t loc_node_id = 42;
 
+static void onFhssChangeChannel(uint8_t s)
+{
+    printf("onFhssChangeChannel---%d\n",s);
+    // if (state.cnt % 2 == 0)
+    {
+        uint8_t bseq[50] = {1,1,1,0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0};
+        // uint8_t bseq[30] = {1,1,0,1,0,1,0,1,0,1,0,1,1,1,1,1,0,0,0,0,0,0,1,0,1,0,1,0,1,0,1};
+        if (s<2 || bseq[s] == 1)
+        {
+            Radio.SetTxConfig(MODEM_LORA, pw_map[state.pw_index], 0, state.bw,
+                            12, state.cr + 1,
+                            8, false, true, true, 1, false, 3000);
+        }
+        else
+        {
+            Radio.SetTxConfig(MODEM_LORA, pw_map[state.pw_index], 0, state.bw,
+                            11, state.cr + 1,
+                            8, false, true, true, 1, false, 3000);
+        }
+    }
+}
+
 static void OnRadioTxDone(void)
 {
-    Radio.SetChannel(507500000); // Hz
+    Radio.SetChannel(475500000); // Hz
     Radio.SetRxConfig(MODEM_LORA, 0, 12, 1, 0, 8, 5000, false, 0, false, 0, 0, false, true);
     Radio.Rx(0);
     // printf("OnRadioTxDone\n");
@@ -176,6 +198,11 @@ static void PreparePacket()
     AppData[15] = ( temperature >> 8 ) & 0xFF;
     AppData[16] = humidity & 0xFF;
     AppData[17] = ( humidity >> 8 ) & 0xFF;
+
+    for(uint16_t i = 0; i < LORAWAN_APP_DATA_MAX_SIZE; ++i)
+    {
+        AppData[i] = Random;
+    }
 }
 
 /**
@@ -192,6 +219,7 @@ int main(void)
     RadioEvents.RxError = OnRadioRxError;
     RadioEvents.TxTimeout = OnRadioTxTimeout;
     RadioEvents.RxTimeout = OnRadioRxTimeout;
+    RadioEvents.FhssChangeChannel = onFhssChangeChannel;
     Radio.Init(&RadioEvents);
 
     // Random seed initialization
@@ -201,7 +229,7 @@ int main(void)
     Radio.SetPublicNetwork(PublicNetwork);
     // Radio.Sleep( );
 
-    log_info("scanf ID, PW, SF, BW, CR, TX_DUTYCYCLE, DATASIZE, FREQ\n");
+    // log_info("scanf ID, PW, SF, BW, CR, TX_DUTYCYCLE, DATASIZE, FREQ\n");
     // scanf("%d", &loc_node_id);
     // scanf("%d", (uint32_t*)&power);
     // scanf("%d", &datarate);
@@ -218,15 +246,19 @@ int main(void)
     // }
     // printf("\n");
 
-    OnRadioTxDone();
+    // OnRadioTxDone();
+    // log_info("on radio tx done\n");
+    uint32_t cnt = 0;
 
     while (1)
     {
-        if (!state.is_on)
-        {
-            DelayMs(state.dc * 1000); // have a rest~~
-            continue;
-        }
+        // if (!state.is_on)
+        // {
+        //     DelayMs(state.dc * 1000); // have a rest~~
+        //     continue;
+        // }
+
+        log_info("circle oooo\n");
 
         /*!
         * \brief Sets the transmission parameters
@@ -270,13 +302,10 @@ int main(void)
                             uint8_t HopPeriod, bool iqInverted, uint32_t timeout
         );*/
         Radio.Standby();
-        Radio.SetChannel(state.freq_index*200000 + 470300000);
-        Radio.SetTxConfig(MODEM_LORA, pw_map[state.pw_index], 0, state.bw,
-                            state.sf + 6, state.cr + 1,
-        // Radio.SetChannel(487500000);
-        // Radio.SetTxConfig(MODEM_LORA, 20, 0, 0,
-        //                     12, 1,
-                            8, false, true, 0, 0, false, 3000);
+        Radio.SetChannel(480000000);
+        Radio.SetTxConfig(MODEM_LORA, 10, 0, 0,
+                            7, 1,
+                            8, false, true, false, 1, false, 3000);
 
         /*!
         * \brief Sets the maximum payload length.
@@ -288,16 +317,20 @@ int main(void)
         // Setup maximum payload lenght of the radio driver
         Radio.SetMaxPayloadLength(MODEM_LORA, state.pkt_size);
 
+        log_info("sent_cnt:%d\n", state.cnt++);
+        
         PreparePacket();
+        AppData[4] = cnt& 0xFF;
+        cnt = cnt + 1;
 
         // Send now
         Radio.Send(AppData, state.pkt_size);
 
-        // log_debug("sent_cnt:%d\n", state.cnt++);
-        state.cnt++;
+        
+        // state.cnt++;
         // log_debug("sent_cnt:%d, power:%d, bw:%d, dr:%d, cr:%d, freq:%d\n", sent_cnt++,
                 //   power, bandwidth, datarate, coderate, freq);
 
-        DelayMs(state.dc * 1000); // have a rest~~
+        DelayMs(5000); // have a rest~~
     }
 }

@@ -75,7 +75,7 @@
     #error "Please define a frequency band in the compiler options."
 #endif
 
-#define TX_OUTPUT_POWER                             14        // dBm
+#define TX_OUTPUT_POWER                             1        // dBm
 
 #if defined( USE_MODEM_LORA )
 
@@ -116,7 +116,7 @@ typedef enum
     TX_TIMEOUT,
 }States_t;
 
-#define RX_TIMEOUT_VALUE                            1000
+#define RX_TIMEOUT_VALUE                            0
 #define BUFFER_SIZE                                 64 // Define the payload size here
 
 const uint8_t PingMsg[] = "QING";
@@ -125,7 +125,12 @@ const uint8_t PongMsg[] = "QONG";
 uint16_t BufferSize = BUFFER_SIZE;
 uint8_t Buffer[BUFFER_SIZE];
 uint32_t recv_cnt = 0;
-uint32_t cnt = 0;
+uint32_t tx_cnt = 0;
+
+uint32_t rf_frequency = 470000000;
+
+bool rxDone = true;
+bool isSleep = true;
 
 States_t State = LOWPOWER;
 
@@ -190,20 +195,26 @@ int main( void )
 
     Radio.Init( &RadioEvents );
 
-    Radio.SetChannel( RF_FREQUENCY );
+    Radio.SetChannel( rf_frequency );
     printf("start\n");
 
 #if defined( USE_MODEM_LORA )
 
+    bool CRC_ON = true;           // Enables/Disables the CRC [0: OFF, 1: ON]
+    bool FREQ_HOP_ON = false;     // Enables disables the intra-packet frequency hopping
+    uint8_t HOP_PERIOD = 0;       // Number of symbols between each hop
+    uint32_t TIME_OUT = 3000;     // Transmission timeout [ms]
     Radio.SetTxConfig( MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
                                    LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                                   true, 0, 0, LORA_IQ_INVERSION_ON, 3000 );
+                                   CRC_ON, FREQ_HOP_ON, HOP_PERIOD, LORA_IQ_INVERSION_ON, TIME_OUT );
 
+    bool RX_CONTINUOUS = true;    // Sets the reception in continuous mode [false: single mode, true: continuous mode]
+    uint8_t PAYLOAD_LEN = 0;      // Sets payload length when fixed length is used
     Radio.SetRxConfig( MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
                                    LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
                                    LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
-                                   0, true, 0, 0, LORA_IQ_INVERSION_ON, true );
+                                   PAYLOAD_LEN, CRC_ON, FREQ_HOP_ON, HOP_PERIOD, LORA_IQ_INVERSION_ON, RX_CONTINUOUS );
 
 #elif defined( USE_MODEM_FSK )
 
@@ -221,137 +232,78 @@ int main( void )
     #error "Please define a frequency band in the compiler options."
 #endif
 
-    Radio.Rx( RX_TIMEOUT_VALUE );
+    if(isMaster){
+        State = TX;
+    }else{
+        State = RX;
+        // Radio.Rx( RX_TIMEOUT_VALUE );
+    }
 
+    // Detect start signal
+    Radio.SetChannel( 507500000 );
+    Radio.Rx( RX_TIMEOUT_VALUE );
+    
     while( 1 )
     {
+        if(isSleep){
+            continue;
+        }
+
+        if(!isMaster){
+            if(!rxDone){
+                continue;
+            }
+        }
         switch( State )
         {
-        case RX:
-            if( isMaster == true )
-            {
-                if( BufferSize > 0 )
-                {
-                    if( strncmp( ( const char* )Buffer, ( const char* )PongMsg, 4 ) == 0 )
-                    {
-                        // Indicates on a LED that the received frame is a PONG
-                        // GpioWrite( &Led1, GpioRead( &Led1 ) ^ 1 );
-                        // printf("receive pong, sending ping\n");
-
-                        // Send the next PING frame
-                        Buffer[0] = 'Q';
-                        Buffer[1] = 'I';
-                        Buffer[2] = 'N';
-                        Buffer[3] = 'G';
-                        // We fill the buffer with numbers for the payload
-                        // for( i = 4; i < BufferSize; i++ )
-                        // {
-                        //     Buffer[i] = i - 4;
-                        // }
-                        memcpy(&recv_cnt, Buffer+4, 4);
-                        printf("master recv cnt: %d\n", recv_cnt);
-                        memcpy(Buffer+4, &cnt, 4);
-                        cnt++;
-                        DelayMs( 1 );
-                        Radio.Send( Buffer, BufferSize );
-                    }
-                    else if( strncmp( ( const char* )Buffer, ( const char* )PingMsg, 4 ) == 0 )
-                    { // A master already exists then become a slave
-                        //isMaster = false;
-                        rx_cnt += 1;
-                        // GpioWrite( &Led2, 1 ); // Set LED off
-                        // printf("receive ping\n");
-                        Radio.Rx( RX_TIMEOUT_VALUE );
-                    }
-                    else // valid reception but neither a PING or a PONG message
-                    {    // Set device as master ans start again
-                        //isMaster = true;
-                        Radio.Rx( RX_TIMEOUT_VALUE );
-                    }
-                }
-            }
-            else
-            {
-                if( BufferSize > 0 )
-                {
-                    if( strncmp( ( const char* )Buffer, ( const char* )PingMsg, 4 ) == 0 )
-                    {
-                        // Indicates on a LED that the received frame is a PING
-                        // GpioWrite( &Led1, GpioRead( &Led1 ) ^ 1 );
-                        // printf("receive ping, sending pong\n");
-
-                        // Send the reply to the PONG string
-                        Buffer[0] = 'Q';
-                        Buffer[1] = 'O';
-                        Buffer[2] = 'N';
-                        Buffer[3] = 'G';
-                        // We fill the buffer with numbers for the payload
-                        // for( i = 4; i < BufferSize; i++ )
-                        // {
-                        //     Buffer[i] = i - 4;
-                        // }
-                        memcpy(&recv_cnt, Buffer+4, 4);
-                        printf("slave recv cnt: %d\n", recv_cnt);
-                        memcpy(Buffer+4, &cnt, 4);
-                        cnt++;
-                        DelayMs( 1 );
-                        Radio.Send( Buffer, BufferSize );
-                    }
-                    else // valid reception but not a PING as expected
-                    {    // Set device as master and start again
-                        //isMaster = true;
-                        Radio.Rx( RX_TIMEOUT_VALUE );
-                    }
-                }
-            }
-            State = LOWPOWER;
-            break;
         case TX:
-            // Indicates on a LED that we have sent a PING [Master]
-            // Indicates on a LED that we have sent a PONG [Slave]
-            // GpioWrite( &Led2, GpioRead( &Led2 ) ^ 1 );
-            // printf("send frame\n");
-            Radio.Rx( RX_TIMEOUT_VALUE );
-            State = LOWPOWER;
-            break;
-        case RX_TIMEOUT:
-        case RX_ERROR:
-            if( isMaster == true )
+            if( BufferSize > 0 )
             {
                 // Send the next PING frame
-                Buffer[0] = 'Q';
+                Buffer[0] = 'P';
                 Buffer[1] = 'I';
                 Buffer[2] = 'N';
                 Buffer[3] = 'G';
-                // for( i = 4; i < BufferSize; i++ )
-                // {
-                //     Buffer[i] = i - 4;
-                // }
-                memcpy(&recv_cnt, Buffer+4, 4);
-                printf("master recv cnt: %d\n", recv_cnt);
-                memcpy(Buffer+4, &cnt, 4);
-                cnt++;
+                // We fill the buffer with numbers for the payload
+                for( i = 4; i < BufferSize; i++ )
+                {
+                    Buffer[i] = i - 4;
+                }
+                Buffer[4] = tx_cnt;
+                
+                printf("master tx cnt: %d\n", tx_cnt);
+                tx_cnt++;
+                
                 DelayMs( 1 );
                 Radio.Send( Buffer, BufferSize );
+                DelayMs(5000);
+                
+                if(tx_cnt > 2){
+                    tx_cnt = 0;
+                    isSleep = true;
+                    Radio.SetChannel( 507500000 );
+                    Radio.Rx( RX_TIMEOUT_VALUE );
+                    printf("Go to sleep...\n");
+                }
             }
-            else
-            {
-                Radio.Rx( RX_TIMEOUT_VALUE );
-            }
-            State = LOWPOWER;
             break;
-        case TX_TIMEOUT:
+
+        case RX:
+        case RX_TIMEOUT:
+        case RX_ERROR:
             Radio.Rx( RX_TIMEOUT_VALUE );
-            State = LOWPOWER;
+            rxDone = false;
             break;
-        case LOWPOWER:
+
+        case TX_TIMEOUT:
+            if(isMaster){
+                State = TX;
+            }
         default:
-            // Set low power
             break;
         }
 
         // TimerLowPowerHandler( );
-
     }
 }
 
@@ -363,23 +315,52 @@ void OnTxDone( void )
 
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
-    // printf("rx done\n");
+    if(isSleep){
+        isSleep = false;
+        Radio.Sleep();
+        printf("WAKE UP!\n");
+
+        uint32_t step = payload[4];
+        rf_frequency = step*125000 + 470000000;
+        printf("CONF:step=%d,rf_freq=%d\n",step,rf_frequency);
+
+        Radio.SetChannel( rf_frequency );
+        DelayMs(1);
+        return;
+    }
+
+    uint32_t pkt_id = payload[4];
+    printf("R%d: p%d,RSSI=%d,SNR=%d\n",recv_cnt,pkt_id,rssi,snr);
+    recv_cnt++;
+
+    if(pkt_id > 1 || recv_cnt > 15){
+        recv_cnt = 0;
+        isSleep = true;
+        Radio.SetChannel( 507500000 );
+        Radio.Rx( RX_TIMEOUT_VALUE );
+        printf("Go to sleep...\n");
+    }
+
     Radio.Sleep( );
-    BufferSize = size;
-    memcpy( Buffer, payload, BufferSize );
-    RssiValue = rssi;
-    SnrValue = snr;
+    // BufferSize = size;
+    // memcpy( Buffer, payload, BufferSize );
+    // RssiValue = rssi;
+    // SnrValue = snr;
     State = RX;
+    rxDone = true;
+    DelayMs(1);
 }
 
 void OnTxTimeout( void )
 {
+    printf("tx timeout\n");
     Radio.Sleep( );
     State = TX_TIMEOUT;
 }
 
 void OnRxTimeout( void )
 {
+    printf("rx timeout\n");
     Radio.Sleep( );
     State = RX_TIMEOUT;
 }
