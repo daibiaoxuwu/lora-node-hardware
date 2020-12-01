@@ -80,5 +80,6 @@
         "memory": "cpp",
         "utility": "cpp",
         "iostream": "c"
-    }
+    },
+    "cmake.configureOnOpen": false
 }

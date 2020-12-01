@@ -21,6 +21,7 @@ cmake_minimum_required(VERSION 3.6)
 #---------------------------------------------------------------------------------------
 # Options
 #---------------------------------------------------------------------------------------
+# set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake" CACHE STRING "Modules for CMake" FORCE)
 
 # Allow switching of target platform
 set(BOARD_LIST LoRaMote MoteII NAMote72 SensorNode SK-iM880A NucleoL073 NucleoL152 SAML21 Handsome)

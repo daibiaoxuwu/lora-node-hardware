@@ -1,0 +1,20 @@
+{
+  "name": "LoRaMac-node",
+  "version": "1.0.0",
+  "description": "______                              _\r      / _____)             _              | |\r     ( (____  _____ ____ _| |_ _____  ____| |__\r      \\____ \\| ___ |    (_   _) ___ |/ ___)  _ \\\r      _____) ) ____| | | || |_| ____( (___| | | |\r     (______/|_____)_|_|_| \\__)_____)\\____)_| |_|\r         (C)2013-2018 Semtech",
+  "main": "index.js",
+  "dependencies": {
+    "dlion": "0.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://e.coding.net/jkadbear/LoRaMac-node.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

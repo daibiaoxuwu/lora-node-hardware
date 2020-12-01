@@ -78,7 +78,7 @@ State state =
     .dc = 3,
     .pw_index = 0,
     .freq_index = 85,
-    .pkt_size = 40,
+    .pkt_size = 240,
     .cnt = 0
 };
 
@@ -182,26 +182,9 @@ static void OnRadioRxTimeout(void)
 
 static void PreparePacket()
 {
-    static int32_t latitude = 0, longitude = 0;
-    static uint16_t temperature = 0, humidity = 0;
-    memcpy(AppData, &state, 8);      // store node id in AppData
-    GpsGetLatestGpsPositionBinary(&latitude, &longitude);
-    SHT2xGetTempHumi(&temperature, &humidity);
-
-    AppData[8] = latitude & 0xFF;
-    AppData[9] = ( latitude >> 8 ) & 0xFF;
-    AppData[10] = ( latitude >> 16 ) & 0xFF;
-    AppData[11] = longitude & 0xFF;
-    AppData[12] = ( longitude >> 8 ) & 0xFF;
-    AppData[13] = ( longitude >> 16 ) & 0xFF;
-    AppData[14] = temperature & 0xFF;
-    AppData[15] = ( temperature >> 8 ) & 0xFF;
-    AppData[16] = humidity & 0xFF;
-    AppData[17] = ( humidity >> 8 ) & 0xFF;
-
     for(uint16_t i = 0; i < LORAWAN_APP_DATA_MAX_SIZE; ++i)
     {
-        AppData[i] = Random;
+        AppData[i] = rand();
     }
 }
 
@@ -229,25 +212,6 @@ int main(void)
     Radio.SetPublicNetwork(PublicNetwork);
     // Radio.Sleep( );
 
-    // log_info("scanf ID, PW, SF, BW, CR, TX_DUTYCYCLE, DATASIZE, FREQ\n");
-    // scanf("%d", &loc_node_id);
-    // scanf("%d", (uint32_t*)&power);
-    // scanf("%d", &datarate);
-    // scanf("%d", &bandwidth);
-    // scanf("%d", (uint32_t*)&coderate);
-    // scanf("%d", &tx_dutycycle);
-    // scanf("%d", (uint32_t*)&data_size);
-    // scanf("%d", &freq);
-
-    // log_info("AppData: ");
-    // for (int i = 0; i < data_size; i++)
-    // {
-    //     printf("%x", AppData[i]);
-    // }
-    // printf("\n");
-
-    // OnRadioTxDone();
-    // log_info("on radio tx done\n");
     uint32_t cnt = 0;
 
     while (1)
@@ -260,41 +224,7 @@ int main(void)
 
         log_info("circle oooo\n");
 
-        /*!
-        * \brief Sets the transmission parameters
-        *
-        * \param [IN] modem        Radio modem to be used [0: FSK, 1: LoRa]
-        * \param [IN] power        Sets the output power [dBm] [20, 16, 14, 12, 10, 7, 5, 2]
-        * \param [IN] fdev         Sets the frequency deviation (FSK only)
-        *                          FSK : [Hz]
-        *                          LoRa: 0
-        * \param [IN] bandwidth    Sets the bandwidth (LoRa only)
-        *                          FSK : 0
-        *                          LoRa: [0: 125 kHz, 1: 250 kHz,
-        *                                 2: 500 kHz, 3: Reserved]
-        * \param [IN] datarate     Sets the Datarate
-        *                          FSK : 600..300000 bits/s
-        *                          LoRa: [6: 64, 7: 128, 8: 256, 9: 512,
-        *                                10: 1024, 11: 2048, 12: 4096  chips]
-        * \param [IN] coderate     Sets the coding rate (LoRa only)
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
-        * \param [IN] preambleLen  Sets the preamble length
-        *                          FSK : Number of bytes
-        *                          LoRa: Length in symbols (the hardware adds 4 more symbols)
-        * \param [IN] fixLen       Fixed length packets [0: variable, 1: fixed]
-        * \param [IN] crcOn        Enables disables the CRC [0: OFF, 1: ON]
-        * \param [IN] FreqHopOn    Enables disables the intra-packet frequency hopping
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: [0: OFF, 1: ON]
-        * \param [IN] HopPeriod    Number of symbols bewteen each hop
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: Number of symbols
-        * \param [IN] iqInverted   Inverts IQ signals (LoRa only)
-        *                          FSK : N/A ( set to 0 )
-        *                          LoRa: [0: not inverted, 1: inverted]
-        * \param [IN] timeout      Transmission timeout [ms]
-        *
+        /*
         void    ( *SetTxConfig )( RadioModems_t modem, int8_t power, uint32_t fdev,
                             uint32_t bandwidth, uint32_t datarate,
                             uint8_t coderate, uint16_t preambleLen,
@@ -324,13 +254,13 @@ int main(void)
         cnt = cnt + 1;
 
         // Send now
-        Radio.Send(AppData, state.pkt_size);
+        Radio.Send(AppData, 240);
 
         
         // state.cnt++;
         // log_debug("sent_cnt:%d, power:%d, bw:%d, dr:%d, cr:%d, freq:%d\n", sent_cnt++,
                 //   power, bandwidth, datarate, coderate, freq);
 
-        DelayMs(5000); // have a rest~~
+        DelayMs(3000); // have a rest~~
     }
 }
