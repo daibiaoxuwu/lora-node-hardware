@@ -299,6 +299,7 @@ bool SX1276IsChannelFree( RadioModems_t modem, uint32_t freq, int16_t rssiThresh
     while( TimerGetElapsedTime( carrierSenseTime ) < maxCarrierSenseTime )
     {
         rssi = SX1276ReadRssi( modem );
+        printf('Radio.RSSI is %.2f\n', rssi);
 
         if( rssi > rssiThresh )
         {
