@@ -299,7 +299,7 @@ bool SX1276IsChannelFree( RadioModems_t modem, uint32_t freq, int16_t rssiThresh
     while( TimerGetElapsedTime( carrierSenseTime ) < maxCarrierSenseTime )
     {
         rssi = SX1276ReadRssi( modem );
-        printf('Radio.RSSI is %.2f\n', rssi);
+        printf("Radio.RSSI is %d\n", rssi);
 
         if( rssi > rssiThresh )
         {
@@ -492,7 +492,7 @@ void SX1276SetRxConfig( RadioModems_t modem, uint32_t bandwidth,
             if( ( ( bandwidth == 7 ) && ( ( datarate == 11 ) || ( datarate == 12 ) ) ) ||
                 ( ( bandwidth == 8 ) && ( datarate == 12 ) ) )
             {
-                SX1276.Settings.LoRa.LowDatarateOptimize = 0x01;
+                SX1276.Settings.LoRa.LowDatarateOptimize = 0x00; //!!!
             }
             else
             {
@@ -652,7 +652,7 @@ void SX1276SetTxConfig( RadioModems_t modem, int8_t power, uint32_t fdev,
             if( ( ( bandwidth == 7 ) && ( ( datarate == 11 ) || ( datarate == 12 ) ) ) ||
                 ( ( bandwidth == 8 ) && ( datarate == 12 ) ) )
             {
-                SX1276.Settings.LoRa.LowDatarateOptimize = 0x01;
+                SX1276.Settings.LoRa.LowDatarateOptimize = 0x00;
             }
             else
             {
@@ -661,7 +661,7 @@ void SX1276SetTxConfig( RadioModems_t modem, int8_t power, uint32_t fdev,
 
             if( SX1276.Settings.LoRa.FreqHopOn == true )
             {
-                printf('Write Reg\n');
+                printf("Write Reg\n");
                 SX1276Write( REG_LR_PLLHOP, ( SX1276Read( REG_LR_PLLHOP ) & RFLR_PLLHOP_FASTHOP_MASK ) | RFLR_PLLHOP_FASTHOP_ON );
                 SX1276Write( REG_LR_HOPPERIOD, SX1276.Settings.LoRa.HopPeriod );
             }

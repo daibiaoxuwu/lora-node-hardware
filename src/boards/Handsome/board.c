@@ -40,7 +40,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 Gpio_t Led1;
 Gpio_t Led2;
 Gpio_t Led3;
-Gpio_t GpsPowerEn;
+// Gpio_t GpsPowerEn;
 
 /*
  * MCU objects

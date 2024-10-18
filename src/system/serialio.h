@@ -22,7 +22,7 @@
 #define __SERIALIO_H__
 
 #include <stdio.h>
-
+#include <stdint.h>
 /*!
  * FIFO buffers size
  */

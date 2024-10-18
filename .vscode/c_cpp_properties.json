@@ -6,6 +6,7 @@
                 "/usr/include",
                 "/usr/local/include",
                 "${workspaceFolder}",
+                "${workspaceFolder}/src/peripherals",
                 "${workspaceFolder}/src/boards",
                 "${workspaceFolder}/src/system",
                 "${workspaceFolder}/src/radio",
